@@ -9,7 +9,7 @@ import com.gara.findgithubuserapp.model.User
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.item_user.view.*
 
-class UserAdapter(private val user: List<User>) : RecyclerView.Adapter<UserAdapter.UserHolder>() {
+class UserAdapter(private var user: List<User>) : RecyclerView.Adapter<UserAdapter.UserHolder>() {
 
     class UserHolder(view: View) : RecyclerView.ViewHolder(view){
         private val ivProfileImage = view.profile_image
@@ -35,5 +35,10 @@ class UserAdapter(private val user: List<User>) : RecyclerView.Adapter<UserAdapt
 
     override fun getItemCount(): Int {
         return user.size
+    }
+
+    fun update(user : List<User>){
+        this.user = user
+        notifyDataSetChanged()
     }
 }
