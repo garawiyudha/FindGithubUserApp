@@ -1,7 +1,9 @@
 package com.gara.findgithubuserapp.presenter
 
-import android.content.Context
+import android.app.Activity
+import com.gara.findgithubuserapp.Constant
 import com.gara.findgithubuserapp.`interface`.UserContract
+import com.gara.findgithubuserapp.model.User
 import com.gara.findgithubuserapp.model.UserResponse
 import com.gara.findgithubuserapp.services.UserService
 import okhttp3.OkHttpClient
@@ -12,27 +14,26 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-class UserPresenterImpl(context: Context, private val mView: UserContract.UserView) : UserContract.UserPresenter {
-    private val baseUrl = "https://api.github.com/"
+class UserPresenterImpl(private val activity: Activity, private val mView: UserContract.UserView) : UserContract.UserPresenter {
+    var username = ""
 
-    override fun getUserData(username: String) {
-        val retrofit = initRetrofit()
-        val service = retrofit.create(UserService::class.java)
+    override fun getUserData(perPage : Int, page : Int) {
+        val service = createUserService()
 
         try {
-            if (!username.isNullOrEmpty()) {
-                service.searchUsers(10, username, page = 1).enqueue(object :
+            if (username.isNotEmpty()) {
+                service.searchUsers(perPage, username, page = page).enqueue(object :
                     Callback<UserResponse> {
                     override fun onResponse(
                         call: Call<UserResponse>,
                         response: Response<UserResponse>
                     ) {
                         if (response.isSuccessful && response.body()?.totalCount!! > 0) {
-                            mView.setUserAdapterList(response.body()?.user!!)
-//                            mView.hideProgressDialog(progressDialog)
+
+                            mView.setUserAdapterList(response.body()?.user!!, page)
                         } else {
                             val message = if (!response.isSuccessful)
-                                "Failed to retrieve data" else "Data not found"
+                                Constant.failedResult else Constant.emptyResult
                             mView.showErrorMessage(message)
                         }
                     }
@@ -44,12 +45,31 @@ class UserPresenterImpl(context: Context, private val mView: UserContract.UserVi
                 })
 
             } else {
-                mView.showErrorMessage("Username cannot be empty !")
+                mView.showErrorMessage(Constant.emptyUsername)
             }
         } catch (e: Exception){
             mView.showErrorMessage(e.message)
         }
 
+    }
+
+    override fun getNextPageData(perPage: Int, page: Int){
+        val service = createUserService()
+        var result = emptyList<User>()
+        try {
+            val call = service.searchUsers(perPage, username, page = page).execute()
+            if (call.isSuccessful){
+                activity.runOnUiThread {
+                    mView.setUserAdapterList(call.body()?.user!!, page)
+                }
+            } else {
+                activity.runOnUiThread {
+                    mView.showErrorMessage(Constant.failedResult)
+                }
+            }
+        } catch (e: Exception){
+            mView.showErrorMessage(e.message)
+        }
     }
 
     override fun initRetrofit() : Retrofit{
@@ -60,9 +80,15 @@ class UserPresenterImpl(context: Context, private val mView: UserContract.UserVi
             .build()
 
         return Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(Constant.baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+    }
+
+    fun createUserService() :UserService{
+        val retrofit = initRetrofit()
+
+        return retrofit.create(UserService::class.java)
     }
 }

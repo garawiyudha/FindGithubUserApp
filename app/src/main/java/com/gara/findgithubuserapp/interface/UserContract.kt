@@ -5,7 +5,7 @@ import retrofit2.Retrofit
 
 interface UserContract {
     interface UserView {
-        fun setUserAdapterList(user: List<User>)
+        fun setUserAdapterList(user: List<User>, page: Int)
 
         fun showErrorMessage(message: String?)
     }
@@ -13,6 +13,8 @@ interface UserContract {
     interface UserPresenter{
         fun initRetrofit() : Retrofit
 
-        fun getUserData(username : String)
+        fun getUserData(perPage : Int = 0, page : Int = 1)
+
+        fun getNextPageData(perPage: Int, page: Int)
     }
 }
