@@ -21,32 +21,32 @@ class UserPresenterImpl(private val activity: Activity, private val mView: UserC
         val service = createUserService()
 
         try {
-            if (username.isNotEmpty()) {
-                service.searchUsers(perPage, username, page = page).enqueue(object :
-                    Callback<UserResponse> {
-                    override fun onResponse(
-                        call: Call<UserResponse>,
-                        response: Response<UserResponse>
-                    ) {
-                        if (response.isSuccessful && response.body()?.totalCount!! > 0) {
+            service.searchUsers(perPage, username, page = page).enqueue(object :
+                Callback<UserResponse> {
+                override fun onResponse(
+                    call: Call<UserResponse>,
+                    response: Response<UserResponse>
+                ) {
+                    if (response.isSuccessful && response.body()?.totalCount!! > 0) {
 
-                            mView.setUserAdapterList(response.body()?.user!!, page)
-                        } else {
-                            val message = if (!response.isSuccessful)
-                                Constant.failedResult else Constant.emptyResult
-                            mView.showErrorMessage(message)
+                        mView.setUserAdapterList(response.body()?.user!!, page)
+                    } else {
+                        var message = ""
+                        when (response.code()){
+                            403 -> message = Constant.reachLimit
+                            200 -> message = Constant.emptyResult
+                            else -> Constant.failedResult
                         }
+
+                        mView.showErrorMessage(message)
                     }
+                }
 
-                    override fun onFailure(call: Call<UserResponse>, t: Throwable) {
-                        mView.showErrorMessage(t.message)
-                    }
+                override fun onFailure(call: Call<UserResponse>, t: Throwable) {
+                    mView.showErrorMessage(Constant.failedResult)
+                }
 
-                })
-
-            } else {
-                mView.showErrorMessage(Constant.emptyUsername)
-            }
+            })
         } catch (e: Exception){
             mView.showErrorMessage(e.message)
         }
@@ -68,7 +68,9 @@ class UserPresenterImpl(private val activity: Activity, private val mView: UserC
                 }
             }
         } catch (e: Exception){
-            mView.showErrorMessage(e.message)
+            activity.runOnUiThread {
+                mView.showErrorMessage(Constant.failedResult)
+            }
         }
     }
 
@@ -86,7 +88,7 @@ class UserPresenterImpl(private val activity: Activity, private val mView: UserC
             .build()
     }
 
-    fun createUserService() :UserService{
+    private fun createUserService() :UserService{
         val retrofit = initRetrofit()
 
         return retrofit.create(UserService::class.java)

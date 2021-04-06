@@ -30,12 +30,17 @@ class MainActivity : AppCompatActivity(), UserContract.UserView  {
 
         bt_search.setOnClickListener {
             val name = et_name.text.toString()
-            mPresenter.username = name
 
-            currentPage = 1
-            isNextPageEmpty = false
+            if (!name.isNullOrEmpty() && name != mPresenter.username){
+                mPresenter.username = name
 
-            mPresenter.getUserData(limitPerPage, currentPage)
+                currentPage = 1
+                isNextPageEmpty = false
+
+                mPresenter.getUserData(limitPerPage, currentPage)
+            } else if (name.isEmpty()) {
+                showErrorMessage(Constant.emptyUsername)
+            }
         }
 
         rv_user.apply {
@@ -79,7 +84,7 @@ class MainActivity : AppCompatActivity(), UserContract.UserView  {
             Thread {
                 mPresenter.getNextPageData(limitPerPage, currentPage)
             }.start()
-        }, 1000)
+        }, 3000)
 
     }
 
